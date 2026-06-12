@@ -1,6 +1,8 @@
-# 🎸 Claudetar Hero
+<p align="center">
+  <img src="public/logo.png" alt="Claudetar Hero" width="520" />
+</p>
 
-**Play it now: [claudetarhero.com](https://claudetarhero.com)**
+<p align="center"><strong>Play it now: <a href="https://claudetarhero.com">claudetarhero.com</a></strong></p>
 
 A Guitar Hero–style rhythm game that runs entirely in the browser and can chart
 **any song**. Type a search, pick a track, and the game pulls the free

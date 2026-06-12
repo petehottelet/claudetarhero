@@ -45,25 +45,10 @@ html, body {
   text-align: center;
 }
 
-.logo {
-  font-family: 'Bangers', cursive;
-  font-size: clamp(56px, 10vw, 110px);
-  line-height: 0.9;
-  letter-spacing: 4px;
-  margin-bottom: 8px;
-}
-.logo span {
-  display: block;
-  background: linear-gradient(180deg, #fff 10%, var(--neon-cyan) 55%, var(--neon-purple));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  filter: drop-shadow(0 0 18px rgba(99, 102, 255, 0.65));
-}
-.logo em {
-  display: block; font-style: normal;
-  background: linear-gradient(180deg, var(--gold), var(--neon-pink));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  filter: drop-shadow(0 0 22px rgba(255, 61, 166, 0.55));
-  transform: rotate(-2deg);
+.logo { margin-bottom: 4px; }
+.logo img {
+  width: min(480px, 82vw);
+  filter: drop-shadow(0 0 28px rgba(177, 76, 255, 0.55));
 }
 .tagline { color: #b9a8e6; font-size: 14px; margin-bottom: 28px; }
 
