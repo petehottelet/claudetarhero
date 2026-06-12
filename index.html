@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claudetar Hero</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bangers&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>&#127928;</text></svg>" />
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <!-- ============ MENU ============ -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-inner">
+      <h1 class="logo"><span>CLAUDETAR</span><em>HERO</em></h1>
+      <p class="tagline">Search any song &mdash; we chart the 30s preview into a face-melting solo</p>
+
+      <form id="search-form" class="search-row">
+        <input id="search-input" type="text" placeholder="Search artist or song… (e.g. Dragonforce)" autocomplete="off" />
+        <button type="submit" class="btn btn-primary">SEARCH</button>
+      </form>
+
+      <div class="difficulty-row" id="difficulty-row">
+        <span class="diff-label">DIFFICULTY</span>
+        <button class="chip" data-diff="easy">EASY</button>
+        <button class="chip selected" data-diff="medium">MEDIUM</button>
+        <button class="chip" data-diff="hard">HARD</button>
+        <button class="chip" data-diff="expert">EXPERT</button>
+      </div>
+
+      <div id="search-status" class="search-status"></div>
+      <div id="results" class="results"></div>
+
+      <button id="demo-btn" class="btn btn-ghost">&#9889; No internet? Play the built-in demo track</button>
+      <p class="help-keys">Frets: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd> &nbsp;•&nbsp; Star Power: <kbd>SPACE</kbd> &nbsp;•&nbsp; Quit: <kbd>ESC</kbd></p>
+    </div>
+  </div>
+
+  <!-- ============ LOADING ============ -->
+  <div id="screen-loading" class="screen hidden">
+    <div class="loading-inner">
+      <img id="loading-art" class="loading-art" alt="" />
+      <h2 id="loading-title">Loading…</h2>
+      <div class="spinner"></div>
+      <p id="loading-status">Downloading preview…</p>
+    </div>
+  </div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="score-panel">
+        <div class="score-label">SCORE</div>
+        <div id="hud-score" class="score-value">0</div>
+        <div id="hud-mult" class="mult-badge">x1</div>
+      </div>
+      <div class="sp-panel">
+        <div class="sp-label">STAR POWER</div>
+        <div class="sp-bar"><div id="hud-sp" class="sp-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="hud-right">
+      <div id="hud-song" class="song-tag"></div>
+      <div class="rock-panel">
+        <div class="rock-label">ROCK</div>
+        <div class="rock-bar"><div id="hud-rock" class="rock-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="hud-streak" class="streak-counter hidden"><span id="hud-streak-n">0</span> STREAK</div>
+    <div id="hud-judge" class="judge hidden"></div>
+    <div id="hud-banner" class="banner hidden"></div>
+    <div id="hud-countdown" class="countdown hidden"></div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div id="screen-results" class="screen hidden">
+    <div class="results-inner">
+      <h2 id="results-verdict">SONG COMPLETE</h2>
+      <div id="results-stars" class="stars"></div>
+      <div id="results-song" class="results-song"></div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">SCORE</div><div id="stat-score" class="stat-value">0</div></div>
+        <div class="stat"><div class="stat-label">BEST STREAK</div><div id="stat-streak" class="stat-value">0</div></div>
+        <div class="stat"><div class="stat-label">NOTES HIT</div><div id="stat-hits" class="stat-value">0</div></div>
+        <div class="stat"><div class="stat-label">ACCURACY</div><div id="stat-acc" class="stat-value">0%</div></div>
+      </div>
+      <div class="results-buttons">
+        <button id="retry-btn" class="btn btn-primary">ENCORE (RETRY)</button>
+        <button id="menu-btn" class="btn btn-ghost">NEW SONG</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
