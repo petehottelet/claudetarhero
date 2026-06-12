@@ -115,8 +115,6 @@ vercel --prod
 The Vite framework preset is auto-detected and `api/proxy.js` deploys as a
 serverless function — no configuration required.
 
----
+## License
 
-*Built with [Claude Code](https://claude.com/claude-code). Charts are derived
-from audio analysis, so they follow a song's energy rather than its actual
-guitar tab — Expert on Dragonforce still gets appropriately stupid.*
+Released under the [MIT License](LICENSE).

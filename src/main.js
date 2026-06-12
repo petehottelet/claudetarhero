@@ -3,6 +3,7 @@ import { searchSongs, fetchPreview } from './itunes.js';
 import { generateChart } from './analysis.js';
 import { renderDemoTrack } from './demo.js';
 import { Game } from './game.js';
+import { initLightning } from './lightning.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -203,5 +204,11 @@ $('retry-btn').addEventListener('click', () => {
   if (lastSong) playSong(lastSong);
 });
 $('menu-btn').addEventListener('click', () => show('menu'));
+
+initLightning(
+  $('lightning-fx'),
+  $('logo-img'),
+  () => !screens.menu.classList.contains('hidden')
+);
 
 show('menu');
