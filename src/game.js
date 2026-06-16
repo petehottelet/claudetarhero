@@ -17,10 +17,44 @@ const HIT_WINDOW = 0.14;
 const PERFECT_WINDOW = 0.055;
 const LEAD_IN = 3.0;
 
+// Background-FX intensity curve. The slider is 0..1; we remap it so that even
+// at 0 the wave is still faintly visible (FX_FLOOR), the lower half (0..0.5)
+// stays subtle/non-distracting (up to FX_MID), and the upper half ramps to
+// full strength at 1.0.
+const FX_FLOOR = 0.1;   // dimmest the background ever gets (slider at 0)
+const FX_MID = 0.32;    // intensity at the slider's midpoint (subtle)
+function fxCurve(s) {
+  s = Math.max(0, Math.min(1, s));
+  return s <= 0.5
+    ? FX_FLOOR + (FX_MID - FX_FLOOR) * (s / 0.5)
+    : FX_MID + (1 - FX_MID) * ((s - 0.5) / 0.5);
+}
+
 const FRET_COLORS = [0x3fe34a, 0xff3b30, 0xffd60a, 0x2f7cff, 0xff9500];
+
+// Rock meter (the "booed off" fail). Tuned so anyone actually playing (>~50%
+// accuracy) hears the whole song, while barely-playing still fails. Real
+// Clone Hero charts are dense, and the old values (60 / +1.3 / -5) booted
+// casual players within seconds.
+const ROCK_START = 80;       // starting fill (0-100)
+const ROCK_HIT = 2.6;        // gain per hit
+const ROCK_MISS = 2.2;       // loss per miss
+const ROCK_FAIL_GRACE = 6;   // seconds of intro grace before a fail can trigger
 const KEYS = { KeyA: 0, KeyS: 1, KeyD: 2, KeyF: 3, KeyG: 4, Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4 };
 
 const laneX = (lane) => (lane - (LANES - 1) / 2) * LANE_W;
+
+// Pick a vertical FOV so the highway stays a usable width on tall/narrow
+// (portrait phone) screens. We keep the horizontal FOV roughly constant by
+// raising the vertical FOV as the aspect ratio drops below the 16:9 baseline.
+const BASE_VFOV = 58;
+const BASE_ASPECT = 16 / 9;
+const BASE_HFOV = 2 * Math.atan(Math.tan((BASE_VFOV * Math.PI) / 360) * BASE_ASPECT);
+function fovForAspect(aspect) {
+  if (aspect >= BASE_ASPECT) return BASE_VFOV;
+  const v = (2 * Math.atan(Math.tan(BASE_HFOV / 2) / aspect) * 180) / Math.PI;
+  return Math.min(v, 92);
+}
 
 // ---------------------------------------------------------------- shaders
 const highwayVert = /* glsl */ `
@@ -104,7 +138,9 @@ export class Game {
     this.scene.background = new THREE.Color(0x06030f);
     this.scene.fog = new THREE.Fog(0x06030f, 32, 78);
 
-    this.camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 200);
+    this.camera = new THREE.PerspectiveCamera(
+      fovForAspect(window.innerWidth / window.innerHeight),
+      window.innerWidth / window.innerHeight, 0.1, 200);
     this.camera.position.set(0, 7.8, 9.5);
     this.camera.lookAt(0, 0, -16);
 
@@ -130,9 +166,14 @@ export class Game {
 
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.fov = fovForAspect(this.camera.aspect);
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.composer.setSize(window.innerWidth, window.innerHeight);
+      if (this.waveFx) {
+        const d = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+        this.waveFx.setResolution(d.x, d.y);
+      }
     });
 
     this._onKeyDown = (e) => this._keyDown(e);
@@ -204,6 +245,9 @@ export class Game {
   }
 
   _buildBackground() {
+    // deep-space backdrop (set on the scene in _initThree); the starfield and
+    // horizon glow below give it depth behind the highway.
+
     // starfield
     const starGeo = new THREE.BufferGeometry();
     const N = 1400;
@@ -232,25 +276,8 @@ export class Game {
     sun.position.set(0, 6, -85);
     this.scene.add(sun);
 
-    // rotating spotlight cones at the horizon
+    // (rotating spotlight cones removed)
     this.spots = [];
-    const coneGeo = new THREE.ConeGeometry(4.2, 46, 18, 1, true);
-    const spotColors = [0xb14cff, 0x3ef0ff, 0xff3da6, 0xffd24a, 0x3ef0ff, 0xb14cff];
-    for (let i = 0; i < 6; i++) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: spotColors[i],
-        transparent: true, opacity: 0.06,
-        side: THREE.DoubleSide, depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const cone = new THREE.Mesh(coneGeo, mat);
-      const pivot = new THREE.Group();
-      cone.position.y = -23; // apex at pivot
-      pivot.add(cone);
-      pivot.position.set((i - 2.5) * 9, 26, -72);
-      this.scene.add(pivot);
-      this.spots.push({ pivot, phase: i * 1.3, speed: 0.4 + (i % 3) * 0.18 });
-    }
   }
 
   _buildPools() {
@@ -329,10 +356,66 @@ export class Game {
 
   _animateBackground(t, dt) {
     this.stars.rotation.y = t * 0.008;
-    for (const s of this.spots) {
-      s.pivot.rotation.z = Math.sin(t * s.speed + s.phase) * 0.55;
-      s.pivot.rotation.x = Math.cos(t * s.speed * 0.7 + s.phase) * 0.18;
+  }
+
+  // ------------------------------------------------- reactive neon wave fx
+  _startWaveFx() {
+    if (!this.waveFx) return;
+    this.waveFx.randomizeColors();
+    this.waveFx.setOpacity(fxCurve(this.fxIntensity ?? 1));
+    this.waveFx.mesh.visible = true;
+  }
+
+  _stopWaveFx() {
+    if (this.waveFx) this.waveFx.mesh.visible = false;
+  }
+
+  // value is the raw slider position (0..1). It's remapped through fxCurve so
+  // even 0 leaves the wave faintly visible (never fully off) and the lower
+  // half stays subtle before ramping to full strength near 1.
+  setFxIntensity(value) {
+    const v = Math.max(0, Math.min(1, value || 0));
+    this.fxIntensity = v;
+    if (!this.waveFx) return;
+    this.waveFx.setOpacity(fxCurve(v));
+    // keep the layer drawn while gameplay runs (floor > 0 means never off);
+    // it stays hidden outside gameplay so it doesn't show behind the menu.
+    if (this.running) this.waveFx.mesh.visible = true;
+  }
+
+  _updateWaveFx(dt) {
+    if (!this.waveFx || !this.waveFx.mesh.visible) return;
+    this.waveFx.tick(dt);
+    if (!this.analyser) return;
+    this.analyser.getByteTimeDomainData(this.waveTime);
+    this.analyser.getByteFrequencyData(this.waveFreq);
+
+    // overall level from the time-domain signal (RMS-ish)
+    let sum = 0;
+    for (let i = 0; i < this.waveTime.length; i++) {
+      const v = (this.waveTime[i] - 128) / 128;
+      sum += v * v;
     }
+    const level = Math.min(1, Math.sqrt(sum / this.waveTime.length) * 2.4);
+
+    // frequency bands -> bass / treble
+    const bins = this.waveFreq;
+    const bassEnd = Math.max(2, (bins.length * 0.08) | 0);
+    const trebStart = (bins.length * 0.55) | 0;
+    let bass = 0;
+    for (let i = 1; i < bassEnd; i++) bass += bins[i];
+    bass = Math.min(1, bass / (bassEnd - 1) / 255 * 1.6);
+    let treb = 0;
+    for (let i = trebStart; i < bins.length; i++) treb += bins[i];
+    treb = Math.min(1, treb / (bins.length - trebStart) / 255 * 2.2);
+
+    // star power makes the whole field bluer/brighter. The intensity slider
+    // only dims brightness (via setOpacity) — it deliberately does NOT scale
+    // the audio response here, so the wave keeps moving in time with the music
+    // at every slider position.
+    const boost = this.spActive ? 1.35 : 1;
+    this.waveFx.updateWaveform(this.waveTime);
+    this.waveFx.setAudio(level * boost, bass, treb);
   }
 
   // ================================================================ start
@@ -358,13 +441,24 @@ export class Game {
     this.startCtxTime = audioCtx.currentTime + LEAD_IN;
     this.source.start(this.startCtxTime);
 
+    // analyser tap for the reactive neon-wave background
+    if (!this.analyser) {
+      this.analyser = audioCtx.createAnalyser();
+      this.analyser.fftSize = 1024;
+      this.analyser.smoothingTimeConstant = 0.75;
+      this.waveTime = new Uint8Array(this.analyser.fftSize);
+      this.waveFreq = new Uint8Array(this.analyser.frequencyBinCount);
+    }
+    this.gain.connect(this.analyser);
+    this._startWaveFx();
+
     // state
     this.score = 0;
     this.streak = 0;
     this.maxStreak = 0;
     this.hits = 0;
     this.misses = 0;
-    this.rock = 60;
+    this.rock = ROCK_START;
     this.sp = 0;
     this.spActive = false;
     this.failed = false;
@@ -442,30 +536,47 @@ export class Game {
     if (e.code === 'Escape') { this._finish(true); return; }
     if (e.code === 'Space') {
       e.preventDefault();
-      if (!this.spActive && this.sp >= 50) {
-        this.spActive = true;
-        this.hud.onBanner('STAR POWER!');
-        this.hud.onSP(this.sp, true);
-        this.hud.onScore(this.score, this.multiplier, this.streak);
-      }
+      this.activateStarPower();
       return;
     }
     const lane = KEYS[e.code];
     if (lane === undefined) return;
-    this.heldLanes[lane] = true;
-    this.frets[lane].press = 1;
-    this._tryHit(lane);
+    this.pressLane(lane);
   }
 
   _keyUp(e) {
     const lane = KEYS[e.code];
     if (lane === undefined) return;
+    this.releaseLane(lane);
+  }
+
+  // public input API — drives the same logic as the keyboard, so on-screen
+  // touch controls can call these directly.
+  pressLane(lane) {
+    if (!this.running || lane < 0 || lane >= LANES) return;
+    this.heldLanes[lane] = true;
+    this.frets[lane].press = 1;
+    this._tryHit(lane);
+  }
+
+  releaseLane(lane) {
+    if (lane < 0 || lane >= LANES) return;
     this.heldLanes[lane] = false;
     // release any sustain in this lane
     this.activeSustains = this.activeSustains.filter((s) => {
       if (s.lane === lane) { this._endSustain(s); return false; }
       return true;
     });
+  }
+
+  activateStarPower() {
+    if (!this.running) return;
+    if (!this.spActive && this.sp >= 50) {
+      this.spActive = true;
+      this.hud.onBanner('STAR POWER!');
+      this.hud.onSP(this.sp, true);
+      this.hud.onScore(this.score, this.multiplier, this.streak);
+    }
   }
 
   _tryHit(lane) {
@@ -499,7 +610,7 @@ export class Game {
     const perfect = absDt <= PERFECT_WINDOW;
     const base = perfect ? 75 : 50;
     this.score += base * this.multiplier;
-    this.rock = Math.min(100, this.rock + 1.3);
+    this.rock = Math.min(100, this.rock + ROCK_HIT);
     if (!this.spActive) this.sp = Math.min(100, this.sp + 1.6);
 
     this.hud.onJudge(perfect ? 'PERFECT' : 'GOOD', perfect ? 'perfect' : 'good');
@@ -555,6 +666,7 @@ export class Game {
     this._updateParticles(dt);
     this._updateRings(dt);
     this._animateBackground(now / 1000, dt);
+    this._updateWaveFx(dt);
 
     // highway scroll + beat pulse
     this.highwayUniforms.uScroll.value = t * SPEED;
@@ -627,7 +739,7 @@ export class Game {
           n.missed = true;
           this.misses++;
           this.streak = 0;
-          this.rock = Math.max(0, this.rock - 5);
+          this.rock = Math.max(0, this.rock - ROCK_MISS);
           this.hud.onJudge('MISS', 'miss');
           this.hud.onScore(this.score, this.multiplier, this.streak);
           this.hud.onRock(this.rock);
@@ -636,7 +748,7 @@ export class Game {
           n.gem.capMat.emissive.set(0x222228);
           n.gem.capMat.emissiveIntensity = 0.3;
           if (n.tail) this._recycleTail(n);
-          if (this.rock <= 0 && !this.failed) {
+          if (this.rock <= 0 && !this.failed && t > ROCK_FAIL_GRACE) {
             this.failed = true;
             this._finish(false);
             return;
@@ -761,6 +873,11 @@ export class Game {
   }
 
   // ================================================================ finish
+  // public: quit the current song back to the menu (same as pressing Esc)
+  quit() {
+    if (this.running) this._finish(true);
+  }
+
   _finish(aborted) {
     if (this.ended) return;
     this.ended = true;
@@ -769,6 +886,8 @@ export class Game {
     window.removeEventListener('keydown', this._onKeyDown);
     window.removeEventListener('keyup', this._onKeyUp);
     try { this.source.stop(); } catch { /* already stopped */ }
+    try { this.gain.disconnect(this.analyser); } catch { /* not connected */ }
+    this._stopWaveFx();
 
     // clear the board
     for (const g of this.gemPool) { g.inUse = false; g.group.visible = false; }
@@ -791,3 +910,5 @@ export class Game {
     });
   }
 }
+
+

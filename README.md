@@ -5,14 +5,18 @@
 <p align="center"><strong>Play it now: <a href="https://claudetarhero.com">claudetarhero.com</a></strong></p>
 
 A Guitar Hero–style rhythm game that runs entirely in the browser and can chart
-**any song**. Type a search, pick a track, and the game pulls the free
-30-second preview from the iTunes Search API, analyzes the audio client-side,
-and generates a playable note chart on the fly — no pre-made charts, no song
-files, no API keys.
+**any song**. Type a search, pick a track, and the game pulls a free 30-second
+preview from the iTunes Search API and generates a chart from the audio on the
+fly.
 
 Rendered with [three.js](https://threejs.org): a neon note highway with a
 custom GLSL shader, bloom post-processing, particle bursts, shockwave rings,
-sustain trails, rotating stage spotlights, and a starfield.
+sustain trails, and a starfield.
+
+You can also **drag and drop a `.sng` chart package** onto the page to play it
+with its real chart and bundled audio. The game is fully **playable on phones**,
+too, with on-screen fret and Star Power controls and a responsive,
+viewport-aware layout.
 
 ## Controls
 
@@ -41,8 +45,7 @@ Results are graded 1–5 stars by accuracy (97%+ = 5★).
 
 ## How charts are generated
 
-This is the interesting part — there is no public archive of Guitar Hero note
-charts with usable licensing, so the game writes its own from the raw audio:
+The game writes its own chart from the raw audio:
 
 1. **Decode.** The 30 s AAC preview is decoded to PCM with the Web Audio API.
 2. **STFT.** A short-time Fourier transform (2048-sample Hann windows, 512 hop,
@@ -75,7 +78,10 @@ src/itunes.js       iTunes Search API client (via the proxy)
 src/analysis.js     FFT, spectral flux, onset/tempo detection, chart generator
 src/demo.js         OfflineAudioContext synth demo track
 src/game.js         three.js engine: highway shader, gem/tail/particle pools,
-                    bloom, input, scoring, star power, rock meter
+                    bloom, input (keyboard + touch), scoring, star power,
+                    rock meter
+src/sng.js          .sng chart-package reader (metadata + embedded files)
+src/chart.js        .chart / .mid chart parser for dropped .sng packages
 src/style.css       HUD + menu styling
 api/proxy.js        Vercel serverless function: proxies iTunes search and
                     preview audio around CORS (also imported by a Vite dev

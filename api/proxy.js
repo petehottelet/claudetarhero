@@ -1,7 +1,8 @@
-// Vercel serverless function: proxies iTunes Search API and audio previews
-// so the browser never hits CORS walls.
-// /api/proxy?type=search&term=...   -> iTunes song search JSON
-// /api/proxy?type=audio&url=...     -> streams the .m4a preview
+// Vercel serverless function: proxies third-party APIs so the browser never
+// hits CORS walls.
+//
+//   /api/proxy?type=search&term=...  -> iTunes song search JSON
+//   /api/proxy?type=audio&url=...    -> streams an iTunes .m4a preview
 
 const ALLOWED_AUDIO_HOSTS = [
   'audio-ssl.itunes.apple.com',

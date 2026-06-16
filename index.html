@@ -2,41 +2,142 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Claudetar Hero</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Bangers&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Metal+Mania&display=swap" rel="stylesheet" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>&#127928;</text></svg>" />
 </head>
 <body>
   <canvas id="gl"></canvas>
 
+  <!-- persistent home link (hidden on the menu, shown during play/results) -->
+  <a id="home-link" class="home-link hidden" href="#" aria-label="Back to home">
+    <img src="/logo.png" alt="Claudetar Hero — home" />
+  </a>
+
+  <!-- full-screen drop target for local .sng chart packages -->
+  <div id="drop-overlay" class="drop-overlay" aria-hidden="true">
+    <div class="drop-card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path>
+        <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+      </svg>
+      <div class="drop-title">DROP TO SHRED</div>
+      <div class="drop-sub">Release your <strong>.sng</strong> chart to load it</div>
+    </div>
+  </div>
+
   <!-- ============ MENU ============ -->
   <div id="screen-menu" class="screen">
-    <canvas id="lightning-fx"></canvas>
     <div class="menu-inner">
       <h1 class="logo"><img id="logo-img" src="/logo.png" alt="Claudetar Hero" /></h1>
       <p class="tagline">Search any song &mdash; we chart the 30s preview into a face-melting solo</p>
 
       <form id="search-form" class="search-row">
-        <input id="search-input" type="text" placeholder="Search artist or song… (e.g. Dragonforce)" autocomplete="off" />
-        <button type="submit" class="btn btn-primary">SEARCH</button>
+        <div class="search-shell">
+          <div class="search-shell-inner">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5"></circle>
+              <line x1="15.5" y1="15.5" x2="21" y2="21"></line>
+            </svg>
+            <input id="search-input" type="text" placeholder="Search artist or song… (e.g. The Midnight)" autocomplete="off" />
+            <button type="submit" class="btn btn-search metal-frame">SEARCH</button>
+          </div>
+        </div>
       </form>
 
-      <div class="difficulty-row" id="difficulty-row">
+      <div class="diff-header">
+        <span class="diff-line"></span>
         <span class="diff-label">DIFFICULTY</span>
-        <button class="chip" data-diff="easy">EASY</button>
-        <button class="chip selected" data-diff="medium">MEDIUM</button>
-        <button class="chip" data-diff="hard">HARD</button>
-        <button class="chip" data-diff="expert">EXPERT</button>
+        <span class="diff-line"></span>
+      </div>
+      <div class="difficulty-row" id="difficulty-row">
+        <button class="chip" data-diff="easy"><span class="chip-inner"><span class="chip-name">EASY</span><span class="chip-radio"></span></span></button>
+        <button class="chip selected" data-diff="medium"><span class="chip-inner"><span class="chip-name">MEDIUM</span><span class="chip-radio"></span></span></button>
+        <button class="chip" data-diff="hard"><span class="chip-inner"><span class="chip-name">HARD</span><span class="chip-radio"></span></span></button>
+        <button class="chip" data-diff="expert"><span class="chip-inner"><span class="chip-name">EXPERT</span><span class="chip-radio"></span></span></button>
       </div>
 
       <div id="search-status" class="search-status"></div>
       <div id="results" class="results"></div>
 
-      <button id="demo-btn" class="btn btn-ghost">&#9889; No internet? Play the built-in demo track</button>
-      <p class="help-keys">Frets: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd> &nbsp;•&nbsp; Star Power: <kbd>SPACE</kbd> &nbsp;•&nbsp; Quit: <kbd>ESC</kbd></p>
+      <div class="demo-panel metal-frame">
+        <div class="demo-text"><span class="demo-bolt">&#9889;</span> NO INTERNET? PLAY THE BUILT-IN DEMO TRACK</div>
+        <button id="demo-btn" class="btn btn-demo metal-frame">&#9654; PLAY DEMO</button>
+      </div>
+
+      <div class="sng-hint">
+        Got a <strong>.sng</strong> chart from
+        <a href="https://www.google.com/search?q=enchor.us" target="_blank" rel="noopener noreferrer">enchor.us</a>?
+        Drag &amp; drop it anywhere to play it with its real chart.
+      </div>
+
+      <div class="help-bar metal-frame">
+        <div class="help-group"><span class="help-label">FRETS</span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd></div>
+        <div class="help-group"><span class="help-label">STAR POWER</span><kbd class="kbd-wide">SPACE</kbd></div>
+        <div class="help-group"><span class="help-label">QUIT</span><kbd class="kbd-wide">ESC</kbd></div>
+      </div>
+
+      <div class="footer-links">
+        <a class="github-link" href="https://github.com/petehottelet/claudetarhero" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"></path>
+          </svg>
+          VIEW SOURCE ON GITHUB
+        </a>
+        <span class="footer-sep" aria-hidden="true">&bull;</span>
+        <a class="github-link" href="https://www.apple.com/legal/internet-services/itunes/" target="_blank" rel="noopener noreferrer">
+          Music from <em>iTunes</em>
+        </a>
+        <span class="footer-sep" aria-hidden="true">&bull;</span>
+        <button type="button" id="tos-link" class="footer-link-btn">Terms of service</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TERMS OF SERVICE MODAL ============ -->
+  <div id="tos-overlay" class="tos-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tos-title" hidden>
+    <div class="tos-modal metal-frame" role="document">
+      <button type="button" id="tos-close" class="tos-close" aria-label="Close">&times;</button>
+      <h2 id="tos-title" class="tos-title">Terms of Service</h2>
+      <p class="tos-sub">we're all friends here, right?</p>
+      <div class="tos-body">
+        <p><strong>1. Nature of the Service.</strong> Claudetar Hero (the &ldquo;Project&rdquo;) is a
+        non-commercial, not-for-profit hobby project created and operated solely for personal
+        amusement and educational purposes. The Project is provided free of charge, generates no
+        revenue, solicits no payment, serves no advertising, and is offered &ldquo;AS IS&rdquo; and
+        &ldquo;AS AVAILABLE,&rdquo; without warranties of any kind, express or implied, including but
+        not limited to merchantability, fitness for a particular purpose, non-infringement, or your
+        ability to land a 200-note streak.</p>
+
+        <p><strong>2. Third-Party Content &amp; Music.</strong> The Project does not host, own, sell,
+        or license any musical recordings. Audio is streamed at the user's direction from an
+        independent third-party service, namely:</p>
+        <ul>
+          <li><strong>Apple / iTunes</strong> &mdash; thirty (30) second song previews are streamed via
+          the public iTunes Search API and remain subject to Apple's
+          <a href="https://www.apple.com/legal/internet-services/itunes/" target="_blank" rel="noopener noreferrer">Apple Media Services Terms and Conditions</a>.</li>
+        </ul>
+        <p>All trademarks, service marks, recordings, and compositions are the property of their
+        respective owners. The Project claims no affiliation with, sponsorship by, or endorsement
+        from Apple Inc., or any artist, label, or publisher. By using the Project you agree to comply
+        with the applicable terms of the third-party service linked above.</p>
+
+        <p><strong>3. Fair Use &amp; Takedowns.</strong> The Project is intended as transformative,
+        non-commercial commentary and interactive entertainment. If you are a rightsholder and
+        believe content is being accessed improperly, the appropriate remedy lies with the upstream
+        third-party service; the Project itself stores no music.</p>
+
+        <p><strong>4. Limitation of Liability.</strong> To the maximum extent permitted by applicable
+        law, the creator(s) of the Project shall not be liable for any direct, indirect, incidental,
+        special, consequential, or exemplary damages arising out of or relating to your use of the
+        Project, including but not limited to fictional booing, bruised egos, or repetitive-strain
+        fretting injuries.</p>
+
+        <p><strong>5. Acceptance.</strong> It's a free guitar game made for fun. Rock responsibly.</p>
+      </div>
     </div>
   </div>
 
@@ -46,27 +147,48 @@
       <img id="loading-art" class="loading-art" alt="" />
       <h2 id="loading-title">Loading…</h2>
       <div class="spinner"></div>
-      <p id="loading-status">Downloading preview…</p>
+      <p id="loading-status">Processing preview…</p>
     </div>
   </div>
 
   <!-- ============ HUD ============ -->
   <div id="hud" class="hidden">
+    <!-- simplified flat top bar (mobile only) -->
+    <div id="m-hud" class="m-hud" aria-hidden="true">
+      <div class="m-hud-top">
+        <div class="m-score">
+          <span id="m-score" class="m-score-num">0</span>
+          <span id="m-mult" class="m-mult">x1</span>
+        </div>
+        <div id="m-song" class="m-song"></div>
+      </div>
+      <div class="m-meters">
+        <div class="m-meter">
+          <span class="m-meter-label">SP</span>
+          <div class="m-meter-track"><div id="m-sp" class="m-meter-fill m-sp-fill"></div></div>
+        </div>
+        <div class="m-meter">
+          <span class="m-meter-label">ROCK</span>
+          <div class="m-meter-track"><div id="m-rock" class="m-meter-fill m-rock-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
     <div class="hud-left">
-      <div class="score-panel">
+      <div class="score-panel metal-frame">
         <div class="score-label">SCORE</div>
         <div id="hud-score" class="score-value">0</div>
         <div id="hud-mult" class="mult-badge">x1</div>
       </div>
-      <div class="sp-panel">
+      <div class="sp-panel metal-frame">
         <div class="sp-label">STAR POWER</div>
         <div class="sp-bar"><div id="hud-sp" class="sp-fill"></div></div>
       </div>
     </div>
 
     <div class="hud-right">
-      <div id="hud-song" class="song-tag"></div>
-      <div class="rock-panel">
+      <div id="hud-song" class="song-tag metal-frame"></div>
+      <div class="rock-panel metal-frame">
         <div class="rock-label">ROCK</div>
         <div class="rock-bar"><div id="hud-rock" class="rock-fill"></div></div>
       </div>
@@ -76,6 +198,18 @@
     <div id="hud-judge" class="judge hidden"></div>
     <div id="hud-banner" class="banner hidden"></div>
     <div id="hud-countdown" class="countdown hidden"></div>
+
+    <!-- on-screen touch controls (shown only on touch devices) -->
+    <div id="touch-controls" class="touch-controls">
+      <button type="button" id="touch-sp" class="touch-sp" aria-label="Star Power">&#9733;</button>
+      <div class="touch-frets">
+        <button type="button" class="touch-fret lane-0" data-lane="0" aria-label="Green fret"></button>
+        <button type="button" class="touch-fret lane-1" data-lane="1" aria-label="Red fret"></button>
+        <button type="button" class="touch-fret lane-2" data-lane="2" aria-label="Yellow fret"></button>
+        <button type="button" class="touch-fret lane-3" data-lane="3" aria-label="Blue fret"></button>
+        <button type="button" class="touch-fret lane-4" data-lane="4" aria-label="Orange fret"></button>
+      </div>
+    </div>
   </div>
 
   <!-- ============ RESULTS ============ -->
@@ -85,14 +219,14 @@
       <div id="results-stars" class="stars"></div>
       <div id="results-song" class="results-song"></div>
       <div class="stat-grid">
-        <div class="stat"><div class="stat-label">SCORE</div><div id="stat-score" class="stat-value">0</div></div>
-        <div class="stat"><div class="stat-label">BEST STREAK</div><div id="stat-streak" class="stat-value">0</div></div>
-        <div class="stat"><div class="stat-label">NOTES HIT</div><div id="stat-hits" class="stat-value">0</div></div>
-        <div class="stat"><div class="stat-label">ACCURACY</div><div id="stat-acc" class="stat-value">0%</div></div>
+        <div class="stat metal-frame"><div class="stat-label">SCORE</div><div id="stat-score" class="stat-value">0</div></div>
+        <div class="stat metal-frame"><div class="stat-label">BEST STREAK</div><div id="stat-streak" class="stat-value">0</div></div>
+        <div class="stat metal-frame"><div class="stat-label">NOTES HIT</div><div id="stat-hits" class="stat-value">0</div></div>
+        <div class="stat metal-frame"><div class="stat-label">ACCURACY</div><div id="stat-acc" class="stat-value">0%</div></div>
       </div>
       <div class="results-buttons">
-        <button id="retry-btn" class="btn btn-primary">ENCORE (RETRY)</button>
-        <button id="menu-btn" class="btn btn-ghost">NEW SONG</button>
+        <button id="retry-btn" class="btn btn-primary metal-frame">ENCORE (RETRY)</button>
+        <button id="menu-btn" class="btn btn-ghost metal-frame">NEW SONG</button>
       </div>
     </div>
   </div>
