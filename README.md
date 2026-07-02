@@ -14,9 +14,9 @@ custom GLSL shader, bloom post-processing, particle bursts, shockwave rings,
 sustain trails, and a starfield.
 
 You can also **drag and drop a `.sng` chart package** onto the page to play it
-with its real chart and bundled audio. The game is fully **playable on phones**,
-too, with on-screen fret and Star Power controls and a responsive,
-viewport-aware layout.
+with its real chart and bundled audio. The game is fully **playable on mobile**,
+with on-screen fret and Star Power controls and a responsive,
+screen-aware layout.
 
 ## Controls
 
